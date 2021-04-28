@@ -1,0 +1,95 @@
+<!DOCTYPE html><html>
+
+<head>
+  <script src="lib/adaptor.js"></script>
+  <script src="lib/hyper-sdk-bundle.js"></script>
+
+<style>
+
+    body {font-size: 12px;height: 100%;margin:0px;padding: 0px;}
+</style>
+
+<link rel="shortcut icon" href="./icon.png" />
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+</head><body>
+
+
+<script id="init">
+
+let hypersdk
+let drive
+
+
+;(async function(){
+
+  await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+  console.log('dom loaded')
+  document.getElementById('main').innerHTML += `<div>Testing hypersdk file transfer size limit</div>`
+  hypersdk = await window.hyperSDK({swarmOpts:{preferredPort:42420,wsProxy:'wss://ooda.space/proxy'}});//,webrtcBootstrap:'https://109.123.82.242/proxy'
+  try{
+  //  if (typeof beaker == "undefined"){
+      drive = await hypersdk.Hyperdrive('drive')
+      await drive.ready()
+  }
+  catch(e) {
+    console.Error('drive creation failed',e)
+  }
+  document.getElementById('main').innerHTML += `<div>drive key: ${drive.key.toString('hex')}           <--copy this to hypersdk_debug_B.html in another browser</div>`
+
+  // save files of incrementing size to the hyperdrive
+  let x = 0;
+  let target_bytes = 1000
+  let str = ''
+  while (target_bytes <= 10000000){ //10MB
+      let strbytes = 0
+      str = String(target_bytes) + '_'
+      while (strbytes < target_bytes){
+          str += str
+          //https://stackoverflow.com/a/34332105
+          strbytes = (new TextEncoder().encode(str)).length
+          
+      }
+      await drive.writeFile('_'+String(target_bytes),str)
+      document.getElementById('main').innerHTML += `<div>${'_'+String(target_bytes)} written to drive, ~${strbytes} bytes </div>`
+      if (strbytes > 100000 && strbytes < 4587520){ // tweak this values for trial and error targetting of file size at which file transfer fails...
+        target_bytes = Math.round(strbytes*1.1)
+      }
+      else {
+        target_bytes = Math.round(strbytes*10)
+      }
+      
+  }
+
+})();
+</script>
+
+<!-- main container div -->
+<div id="main" style="width:100%;height:100%;display:flex;flex-direction:column;background-color:lightblue;grid-template: auto / auto;">
+
+<b>hypersdk_debug_A.html</b><br><br>
+
+This is for debugging a hypersdk file transfer issue I'm having.<br><br>
+
+You should see logs for the creation of a hyperdrive below. The script saves files of increasing size to the drive. <br><br>
+
+You'll need to save the drive's key and load the <a href="../hypersdk_debug_B.html">hypersdk_debug_B.html</a> page in a different browser to recreate the issue.<br><br>
+
+When the hypersdk_debug_B page is loaded you might see the following error in the console:<br><br>
+<pre>
+Uncaught TypeError: Cannot read property 'update' of null
+    at XSalsa20.update (hyper-sdk-bundle.js:72718)
+    at XORJS.update (hyper-sdk-bundle.js:72686)
+    at XOR.encrypt (hyper-sdk-bundle.js:62572)
+    at SimpleProtocol._sendNow (hyper-sdk-bundle.js:62330)
+    at SimpleProtocol._send (hyper-sdk-bundle.js:62318)
+    at SimpleProtocol.data (hyper-sdk-bundle.js:62256)
+    at Channel.data (hyper-sdk-bundle.js:33587)
+    at onvalue (hyper-sdk-bundle.js:36342)
+    at Request._callback (hyper-sdk-bundle.js:37014)
+    at Request.callback (hyper-sdk-bundle.js:55488)
+</pre>
+<br><br>
+
+</div>
+
+</body></html>

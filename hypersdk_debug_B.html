@@ -1,0 +1,91 @@
+<!DOCTYPE html><html>
+
+<head>
+  <script src="lib/adaptor.js"></script>
+  <script src="lib/hyper-sdk-bundle.js"></script>
+
+<style>
+
+    body {font-size: 12px;height: 100%;margin:0px;padding: 0px;}
+</style>
+
+<link rel="shortcut icon" href="./icon.png" />
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+</head><body>
+
+
+<script id="init">
+
+
+
+let hypersdk
+let drive
+
+
+;(async function(){
+
+  await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+  console.log('dom loaded')
+  let remotekey
+  document.getElementById('run').addEventListener('click',async (e)=>{
+    //if (e.keyCode == 13 && !e.shiftKey){ // enter keycode
+            remotekey = document.getElementById('inputdiv').value
+            hypersdk = await window.hyperSDK({swarmOpts:{preferredPort:42420,wsProxy:'wss://ooda.space/proxy'}});//,webrtcBootstrap:'https://109.123.82.242/proxy'
+            try{
+            //  if (typeof beaker == "undefined"){
+                drive = await hypersdk.Hyperdrive(remotekey)
+                await drive.ready()
+            }
+            catch(e) {
+              console.log('already there1',e)
+            }
+            //got remote drive
+            document.getElementById('main').innerHTML += `<div>got remote drive: ${drive.key.toString('hex')} </div>`
+            let files = await drive.readdir('')
+            document.getElementById('main').innerHTML += `<div>files: ${files} (if empty array, refresh and re-run) </div>`
+            console.log('files',files)
+            let x = 0;
+            
+            let target_bytes = 1000
+            let str = ''
+
+            // attempt to readfiles from other drive
+            files.forEach(async (file)=>{
+              document.getElementById('main').innerHTML += `<div>reading file: ${file} </div>`
+              await drive.readFile(file).then((f)=>{
+                console.log('got file',f)
+              //https://stackoverflow.com/a/34332105
+                let flen = (new TextEncoder().encode(f.toString())).length //.length
+                document.getElementById('main').innerHTML += `<div>size: ${flen} bytes </div>`
+              }).catch((e)=>{
+                  document.getElementById('main').innerHTML += `<div>reading failed: ${e} </div>`
+              })
+              
+            })
+      //}
+           
+  })
+
+
+  })();
+
+
+</script>
+
+<!-- main container div -->
+<div id="main" style="width:100%;height:100%;display:flex;flex-direction:column;background-color:lightgreen;grid-template: auto / auto;">
+  <b>hypersdk_debug_B.html</b><br><br>
+  <div>Enter the drive key from the other page, hypersdk_debug_A.html (loaded in a different browser)</div>
+  <div>
+      <input id="inputdiv" placeholder="Enter drive key here" style="padding: 20px;margin: 20px;width: 150px;"></div>
+        <div id='run' style="background-color:lightgray;border:1px black solid;padding: 20px;margin: 20px;width: 150px;cursor: pointer;">
+            Click to run
+        </div>
+  </div>
+
+
+
+
+</div>
+
+</body></html>
